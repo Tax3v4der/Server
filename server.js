@@ -5,7 +5,7 @@ const express = require("express");
 const http = require("http");
 
 // ===== CONFIG =====
-const MQTT_HOST = process.env.MQTT_HOST;
+const MQTT_HOST = process.env.MQTT_HOST; // e.g., "mqtt://localhost:1883"
 const MQTT_USER = process.env.MQTT_USER;
 const MQTT_PASS = process.env.MQTT_PASS;
 
@@ -19,6 +19,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// Store last known states
 let lastState = {
   pump: { state: "UNKNOWN", lastConfirmed: null },
   temps: null
@@ -31,19 +32,29 @@ const mqttClient = mqtt.connect(MQTT_HOST, {
   reconnectPeriod: 2000
 });
 
-
 mqttClient.on("connect", () => {
   console.log("MQTT connected");
+
+  // Subscribe to topics
   mqttClient.subscribe([
     "factory/line1/temps",
     "factory/line1/status",
     "factory/line1/alarm"
-  ]);
+  ], err => {
+    if (err) console.error("MQTT subscribe error:", err);
+  });
 });
 
 mqttClient.on("message", (topic, payload) => {
-  const msg = JSON.parse(payload.toString());
+  let msg;
+  try {
+    msg = JSON.parse(payload.toString());
+  } catch (e) {
+    console.error("Invalid MQTT JSON:", payload.toString());
+    return;
+  }
 
+  // Temperature updates
   if (topic === "factory/line1/temps") {
     lastState.temps = {
       in: msg.t1,
@@ -59,6 +70,7 @@ mqttClient.on("message", (topic, payload) => {
     });
   }
 
+  // Pump status
   if (topic === "factory/line1/status") {
     lastState.pump = {
       state: msg.fb ? "ON" : "OFF",
@@ -72,6 +84,7 @@ mqttClient.on("message", (topic, payload) => {
     });
   }
 
+  // Alarm
   if (topic === "factory/line1/alarm") {
     broadcast({ type: "alarm", data: msg });
   }
@@ -86,6 +99,7 @@ function broadcast(obj) {
 }
 
 wss.on("connection", ws => {
+  // Send current snapshot on connect
   ws.send(JSON.stringify({
     type: "snapshot",
     pump: lastState.pump,
@@ -94,21 +108,38 @@ wss.on("connection", ws => {
 });
 
 // ===== HTTP API =====
+
+// Pump command
 app.post("/api/pump/command", (req, res) => {
   const { target } = req.body;
   if (target !== "ON" && target !== "OFF") {
-    return res.status(400).json({ ok: false });
+    return res.status(400).json({ ok: false, error: "Invalid target" });
   }
 
   mqttClient.publish(
     "factory/line1/cmd/contactor",
     target,
-    { qos: 1 }
+    { qos: 1 },
+    err => {
+      if (err) {
+        console.error("MQTT publish error:", err);
+        return res.status(500).json({ ok: false, error: "MQTT publish failed" });
+      }
+      res.json({ ok: true });
+    }
   );
-
-  res.json({ ok: true });
 });
 
+// ===== Health check (added) =====
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    mqttConnected: mqttClient.connected,
+    clients: wss.clients.size
+  });
+});
+
+// ===== START SERVER =====
 server.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
 );
