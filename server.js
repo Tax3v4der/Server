@@ -44,6 +44,9 @@ mqttClient.on("connect", () => {
     if (err) console.error("MQTT subscribe error:", err);
   });
 });
+mqttClient.on("connect", () => console.log("✅ MQTT connected"));
+mqttClient.on("error", err => console.error("❌ MQTT error:", err));
+mqttClient.on("reconnect", () => console.log("🔄 MQTT reconnecting..."));
 
 mqttClient.on("message", (topic, payload) => {
   let msg;
