@@ -8,7 +8,7 @@ const MQTT_HOST = "6a8fe91be4f74bb4b4dee8ef8b3e8ad9.s1.eu.hivemq.cloud";
 const MQTT_USER = "thermo";
 const MQTT_PASS = "Thermo123";
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 // ==================
 
 const app = express();
