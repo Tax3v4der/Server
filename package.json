@@ -1,0 +1,28 @@
+{
+  "name": "mqtt-ui-bridge",
+  "version": "1.0.0",
+  "description": "MQTT to Web UI bridge",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2",
+    "mqtt": "^5.4.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tax3v4der/Server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Tax3v4der/Server/issues"
+  },
+  "homepage": "https://github.com/Tax3v4der/Server#readme"
+}
