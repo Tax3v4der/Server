@@ -1,14 +1,16 @@
+require("dotenv").config();
 const mqtt = require("mqtt");
 const WebSocket = require("ws");
 const express = require("express");
 const http = require("http");
 
 // ===== CONFIG =====
-const MQTT_HOST = "6a8fe91be4f74bb4b4dee8ef8b3e8ad9.s1.eu.hivemq.cloud";
-const MQTT_USER = "thermo";
-const MQTT_PASS = "Thermo123";
+const MQTT_HOST = process.env.MQTT_HOST;
+const MQTT_USER = process.env.MQTT_USER;
+const MQTT_PASS = process.env.MQTT_PASS;
 
 const PORT = process.env.PORT || 3000;
+
 // ==================
 
 const app = express();
@@ -25,8 +27,10 @@ let lastState = {
 // ===== MQTT =====
 const mqttClient = mqtt.connect(MQTT_HOST, {
   username: MQTT_USER,
-  password: MQTT_PASS
+  password: MQTT_PASS,
+  reconnectPeriod: 2000
 });
+
 
 mqttClient.on("connect", () => {
   console.log("MQTT connected");
